@@ -27,13 +27,17 @@ theme: /
             go: HandleTransferChoice
 
         state: HandleTransferChoice
-            if: {{$dialog.buttonsHit.button}} == "Да, переведите"
-                a: Соединяю с оператором. Пожалуйста, подождите.
-                go: /TransferToOperator
-            else:
-                a: Номер поддержки 8 (495) 981-0-981 работает 24/7.
-                a: Звонок платный, стоимость зависит от тарифов вашего оператора связи.
-                go: /CloseDialog
+            script:
+                var buttonText = $dialogs.buttonsHit.button;
+                if (buttonText == "Да, переведите") {
+                    $dialogs.answer = "Соединяю с оператором. Пожалуйста, подождите.";
+                    $dialogs.transition = "/TransferToOperator";
+                } else {
+                    $dialogs.answer = "Номер поддержки 8 (495) 981-0-981 работает 24/7.\nЗвонок платный, стоимость зависит от тарифов вашего оператора связи.";
+                    $dialogs.transition = "/CloseDialog";
+                }
+            a: {{$dialogs.answer}}
+            go: {{$dialogs.transition}}
 
     # ---------------------- СЦЕНАРИЙ №2: СПОСОБЫ ОПЛАТЫ ----------------------
     state: PaymentMethods
@@ -51,23 +55,25 @@ theme: /
         go: ProcessPaymentChoice
 
         state: ProcessPaymentChoice
-            if: {{$dialog.buttonsHit.button}} == "Как пополнить в приложении?"
-                a: Для пополнения продукта перейдите в него и выберите «Пополнить».
-                a: 💰 ознакомиться с комиссией можно при оплате.
-                go: /CloseDialog
-
-            if: {{$dialog.buttonsHit.button}} == "Где внести наличные?"
-                a: Внести наличные можно:
-                a: - в офисе нашего банка (банкомат/терминал/касса);
-                a: - в банкоматах: «ВТБ», «Альфа-Банка», «Райффайзенбанк».
-                a: Комиссии нет, а внести можно от 500 тыс. до 1.5 млн.
-                a: Подобрать удобный адрес и ознакомиться с режимом работы можно в разделе «Отделения и банкоматы» (https://rencredit.ru/addresses/).
-                a: 🏛 Подробная информация о всех способах оплаты доступна на нашем сайте в разделе «Платежи и переводы» (https://rencredit.ru/payment/).
-                go: /CloseDialog
-
-            if: {{$dialog.buttonsHit.button}} == "Сложности с оплатой"
-                a: Вас понял, уже перевожу.
-                go: /TransferToOperator
+            script:
+                var buttonText = $dialogs.buttonsHit.button;
+                var query = $request.query;
+                
+                if (buttonText == "Как пополнить в приложении?" || query.indexOf("приложен") != -1) {
+                    $dialogs.answer = "Для пополнения продукта перейдите в него и выберите «Пополнить».\n💰 ознакомиться с комиссией можно при оплате.";
+                    $dialogs.transition = "/CloseDialog";
+                } else if (buttonText == "Где внести наличные?" || query.indexOf("наличн") != -1) {
+                    $dialogs.answer = "Внести наличные можно:\n- в офисе нашего банка (банкомат/терминал/касса);\n- в банкоматах: «ВТБ», «Альфа-Банка», «Райффайзенбанк».\n\nКомиссии нет, а внести можно от 500 тыс. до 1.5 млн.\n\nПодобрать удобный адрес и ознакомиться с режимом работы можно в разделе «Отделения и банкоматы» (https://rencredit.ru/addresses/).\n\n🏛 Подробная информация о всех способах оплаты доступна на нашем сайте в разделе «Платежи и переводы» (https://rencredit.ru/payment/).";
+                    $dialogs.transition = "/CloseDialog";
+                } else if (buttonText == "Сложности с оплатой") {
+                    $dialogs.answer = "Вас понял, уже перевожу.";
+                    $dialogs.transition = "/TransferToOperator";
+                } else {
+                    $dialogs.answer = "Пожалуйста, выберите один из вариантов на кнопках.";
+                    $dialogs.transition = "/PaymentMethods";
+                }
+            a: {{$dialogs.answer}}
+            go: {{$dialogs.transition}}
 
     # ---------------------- ЗАВЕРШЕНИЕ ДИАЛОГА ----------------------
     state: CloseDialog
@@ -78,24 +84,21 @@ theme: /
             "Показать список моих возможностей"
 
         state: FinalChoice
-            if: {{$dialog.buttonsHit.button}} == "Да, спасибо, все хорошо"
-                a: Рад был помочь! Всегда обращайтесь. Хорошего дня!
-                go: /Exit
-
-            if: {{$dialog.buttonsHit.button}} == "Показать список моих возможностей"
-                a: Вот что я умею:
-                a: - Спросить номер горячей линии
-                a: - Рассказать, как оплатить кредит или внести наличные
-                a: - Подсказать адрес отделения
-                go: /
-
-            if: {{$dialog.buttonsHit.button}} == "Нет, остался вопрос"
-                a: Давайте попробуем еще раз. Задайте ваш вопрос, и я постараюсь помочь.
-                go: /
-
-            else:
-                a: Давайте попробуем еще раз. Задайте ваш вопрос, и я постараюсь помочь.
-                go: /
+            script:
+                var buttonText = $dialogs.buttonsHit.button;
+                
+                if (buttonText == "Да, спасибо, все хорошо") {
+                    $dialogs.answer = "Рад был помочь! Всегда обращайтесь. Хорошего дня!";
+                    $dialogs.transition = "/Exit";
+                } else if (buttonText == "Показать список моих возможностей") {
+                    $dialogs.answer = "Вот что я умею:\n- Спросить номер горячей линии\n- Рассказать, как оплатить кредит или внести наличные\n- Подсказать адрес отделения";
+                    $dialogs.transition = "/";
+                } else {
+                    $dialogs.answer = "Давайте попробуем еще раз. Задайте ваш вопрос, и я постараюсь помочь.";
+                    $dialogs.transition = "/";
+                }
+            a: {{$dialogs.answer}}
+            go: {{$dialogs.transition}}
 
     # ---------------------- ОБРАБОТЧИК FALLBACK ----------------------
     state: Fallback

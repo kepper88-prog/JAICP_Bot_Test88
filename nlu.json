@@ -23,7 +23,7 @@
     }
   },
   "intents" : [ {
-    "path" : "/Hotline",
+    "path" : "/hotline",
     "enabled" : true,
     "shared" : false,
     "phrases" : [ {

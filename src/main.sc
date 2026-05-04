@@ -64,6 +64,7 @@ theme: /
     state: PaymentCash
         event: match
         q: * Где внести наличные *
+        q: * где внести наличные *
         q: * наличн *
         q: * внести *
         

@@ -6,7 +6,6 @@ theme: /
         q: * телефон *
         q: * горячая линия *
         q: * номер поддержки *
-        q: * нужен номер *
         
         script:
             var asked = $session.phoneAsked;
@@ -18,23 +17,24 @@ theme: /
             } else {
                 $session.phoneAsked = false;
                 $reactions.answer("Я могу перевести вас на оператора для решения вопроса в чате, устроит?\n\n✅ Да, переведите\n❌ Нет, нужен телефон");
-                $reactions.transition("PhoneAnswer");
+                // Переход в корневое состояние PhoneAnswer
+                $reactions.transition("/PhoneAnswer");
             }
 
     # ---------------------- ОТВЕТ НА ВОПРОС ПРО ОПЕРАТОРА ----------------------
     state: PhoneAnswer
         script:
-            var text = $message.text || "";
+            var text = $jsapi.message().text || "";
             
             if (text.indexOf("нет") != -1) {
                 $reactions.answer("Номер поддержки 8 (495) 981-0-981 работает 24/7.\nЗвонок платный, стоимость зависит от тарифов вашего оператора связи.");
-                $reactions.transition("CloseDialog");
+                $reactions.transition("/CloseDialog");
             } else if (text.indexOf("да") != -1) {
                 $reactions.answer("Соединяю с оператором. Пожалуйста, подождите.");
-                $reactions.transition("TransferToOperator");
+                $reactions.transition("/TransferToOperator");
             } else {
                 $reactions.answer("Пожалуйста, ответьте 'Да' или 'Нет'");
-                $reactions.transition("PhoneAnswer");
+                $reactions.transition("/PhoneAnswer");
             }
 
     # ---------------------- ОПЛАТА: ПОПОЛНЕНИЕ В ПРИЛОЖЕНИИ ----------------------
@@ -44,7 +44,7 @@ theme: /
         
         a: Для пополнения продукта перейдите в него и выберите «Пополнить».
         a: 💰 ознакомиться с комиссией можно при оплате.
-        go: CloseDialog
+        go: /CloseDialog
 
     # ---------------------- ОПЛАТА: ВНЕСЕНИЕ НАЛИЧНЫХ ----------------------
     state: PaymentCash
@@ -58,7 +58,7 @@ theme: /
         a: Комиссии нет, а внести можно от 500 тыс. до 1.5 млн.
         a: Подобрать удобный адрес и ознакомиться с режимом работы можно в разделе «Отделения и банкоматы» (https://rencredit.ru/addresses/).
         a: 🏛 Подробная информация о всех способах оплаты доступна на нашем сайте в разделе «Платежи и переводы» (https://rencredit.ru/payment/).
-        go: CloseDialog
+        go: /CloseDialog
 
     # ---------------------- ОПЛАТА: СЛОЖНОСТИ ----------------------
     state: PaymentProblem
@@ -66,7 +66,7 @@ theme: /
         q: * проблемы с оплатой *
         
         a: Вас понял, уже перевожу.
-        go: TransferToOperator
+        go: /TransferToOperator
 
     # ---------------------- ОСНОВНОЕ МЕНЮ ОПЛАТЫ ----------------------
     state: PaymentMenu
@@ -94,7 +94,7 @@ theme: /
         q: * спасибо *
         
         a: Рад был помочь! Всегда обращайтесь. Хорошего дня!
-        go: Exit
+        go: /Exit
 
     state: CloseCapabilities
         event: match

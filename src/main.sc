@@ -14,27 +14,36 @@ theme: /
                 $reactions.answer("Конечно, телефон службы поддержки есть.\nНо, возможно, я смогу помочь вам быстрее, так как многие вопросы можно решить прямо в чате. Что именно вас интересует?");
                 $reactions.transition("/");
             } else {
+                $session.phoneAsked = false;
                 $reactions.answer("Я могу перевести вас на оператора для решения вопроса в чате, устроит?\n\n✅ Да, переведите\n❌ Нет, нужен телефон");
-                $reactions.transition("/PhoneAnswer");
+                $reactions.transition("/PhoneWaitButtons");
             }
 
-    # ---------------------- ОТВЕТ НА ВОПРОС ПРО ОПЕРАТОРА ----------------------
-    state: PhoneAnswer
-        script:
-            var text = $request.query || "";
-            
-            if (text.indexOf("нет") != -1) {
-                $session.phoneAsked = false;
-                $reactions.answer("Номер поддержки 8 (495) 981-0-981 работает 24/7.\nЗвонок платный, стоимость зависит от тарифов вашего оператора связи.");
-                $reactions.transition("/CloseDialog");
-            } else if (text.indexOf("да") != -1) {
-                $session.phoneAsked = false;
-                $reactions.answer("Соединяю с оператором. Пожалуйста, подождите.");
-                $reactions.transition("/TransferToOperator");
-            } else {
-                $reactions.answer("Пожалуйста, ответьте 'Да' или 'Нет'");
-                $reactions.transition("/PhoneAnswer");
-            }
+    # ---------------------- КНОПКИ ДЛЯ ОТВЕТА ----------------------
+    state: PhoneWaitButtons
+        a: Выберите вариант ответа:
+        buttons:
+            "Да, переведите"
+            "Нет, нужен телефон"
+
+    # ---------------------- ОТВЕТ "НЕТ" ----------------------
+    state: PhoneNo
+        event: match
+        q: * нет *
+        q: * Нет, нужен телефон *
+        
+        a: Номер поддержки 8 (495) 981-0-981 работает 24/7.
+        a: Звонок платный, стоимость зависит от тарифов вашего оператора связи.
+        go: /CloseDialog
+
+    # ---------------------- ОТВЕТ "ДА" ----------------------
+    state: PhoneYes
+        event: match
+        q: * да *
+        q: * Да, переведите *
+        
+        a: Соединяю с оператором. Пожалуйста, подождите.
+        go: /TransferToOperator
 
     # ---------------------- ОПЛАТА: ПОПОЛНЕНИЕ В ПРИЛОЖЕНИИ ----------------------
     state: PaymentApp

@@ -1,37 +1,41 @@
 theme: /
 
-    # ---------------------- ТЕЛЕФОН: ПЕРВЫЙ ЗАПРОС ----------------------
-    state: PhoneFirst
+    # ---------------------- ТЕЛЕФОН ----------------------
+    state: PhoneNumber
         q: * номер телефона *
         q: * телефон *
         q: * горячая линия *
         q: * номер поддержки *
+        q: * нужен номер *
         
-        a: Конечно, телефон службы поддержки есть.
-        a: Но, возможно, я смогу помочь вам быстрее, так как многие вопросы можно решить прямо в чате. Что именно вас интересует?
-        go: PhoneWait
+        script:
+            var asked = $session.phoneAsked;
+            
+            if (!asked) {
+                $session.phoneAsked = true;
+                $reactions.answer("Конечно, телефон службы поддержки есть.\nНо, возможно, я смогу помочь вам быстрее, так как многие вопросы можно решить прямо в чате. Что именно вас интересует?");
+                $reactions.transition("/");
+            } else {
+                $session.phoneAsked = false;
+                $reactions.answer("Я могу перевести вас на оператора для решения вопроса в чате, устроит?\n\n✅ Да, переведите\n❌ Нет, нужен телефон");
+                $reactions.transition("PhoneAnswer");
+            }
 
-    # ---------------------- ТЕЛЕФОН: ВТОРОЙ ШАГ ----------------------
-    state: PhoneWait
-        a: Я могу перевести вас на оператора для решения вопроса в чате, устроит?
-        buttons:
-            "Да, переведите"
-            "Нет, нужен телефон"
-
-    state: PhoneNo
-        event: match
-        q: * нет *
-        
-        a: Номер поддержки 8 (495) 981-0-981 работает 24/7.
-        a: Звонок платный, стоимость зависит от тарифов вашего оператора связи.
-        go: CloseDialog
-
-    state: PhoneYes
-        event: match
-        q: * да *
-        
-        a: Соединяю с оператором. Пожалуйста, подождите.
-        go: TransferToOperator
+    # ---------------------- ОТВЕТ НА ВОПРОС ПРО ОПЕРАТОРА ----------------------
+    state: PhoneAnswer
+        script:
+            var text = $message.text || "";
+            
+            if (text.indexOf("нет") != -1) {
+                $reactions.answer("Номер поддержки 8 (495) 981-0-981 работает 24/7.\nЗвонок платный, стоимость зависит от тарифов вашего оператора связи.");
+                $reactions.transition("CloseDialog");
+            } else if (text.indexOf("да") != -1) {
+                $reactions.answer("Соединяю с оператором. Пожалуйста, подождите.");
+                $reactions.transition("TransferToOperator");
+            } else {
+                $reactions.answer("Пожалуйста, ответьте 'Да' или 'Нет'");
+                $reactions.transition("PhoneAnswer");
+            }
 
     # ---------------------- ОПЛАТА: ПОПОЛНЕНИЕ В ПРИЛОЖЕНИИ ----------------------
     state: PaymentApp
@@ -60,7 +64,6 @@ theme: /
     state: PaymentProblem
         q: * сложности с оплатой *
         q: * проблемы с оплатой *
-        q: * не могу оплатить *
         
         a: Вас понял, уже перевожу.
         go: TransferToOperator
@@ -104,6 +107,8 @@ theme: /
         a: 🏦 - подсказать где внести наличные
         a: Просто напишите мне ваш вопрос!
         go: /
+        script:
+            $session.phoneAsked = false;
 
     state: CloseNo
         event: match
@@ -112,6 +117,8 @@ theme: /
         
         a: Давайте попробуем еще раз. Задайте ваш вопрос, и я постараюсь помочь.
         go: /
+        script:
+            $session.phoneAsked = false;
 
     # ---------------------- ОБРАБОТЧИК ОШИБОК ----------------------
     state: Fallback
@@ -123,12 +130,18 @@ theme: /
         a: 🏦 - подсказать где внести наличные
         a: Напишите, пожалуйста, что вас интересует.
         go: /
+        script:
+            $session.phoneAsked = false;
 
     # ---------------------- ПЕРЕВОД НА ОПЕРАТОРА ----------------------
     state: TransferToOperator
         event!: transferToOperator
         a: Пожалуйста, подождите, я соединяю вас с оператором чата.
+        script:
+            $session.phoneAsked = false;
 
     # ---------------------- ВЫХОД ----------------------
     state: Exit
         event!: exit
+        script:
+            $session.phoneAsked = false;

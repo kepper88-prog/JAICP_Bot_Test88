@@ -31,21 +31,27 @@ theme: /
             go: HandleTransferChoice
 
         state: HandleTransferChoice
-            # Обработка кнопки "Нет" или текста "нет"
-            if: {{$dialog.buttonsHit.button}} == "Нет, нужен телефон" || {{$request.query}} contains "нет"
-                a: Номер поддержки 8 (495) 981-0-981 работает 24/7.
-                a: Звонок платный, стоимость зависит от тарифов вашего оператора связи.
-                go: CloseDialog
-            
-            # Обработка кнопки "Да" или текста "да"
-            elif: {{$dialog.buttonsHit.button}} == "Да, переведите" || {{$request.query}} contains "да"
-                a: Соединяю с оператором. Пожалуйста, подождите.
-                go: TransferToOperator
-            
-            # Если ничего не подошло - повторяем вопрос
-            else:
-                a: Пожалуйста, ответьте "Да" или "Нет".
-                go: WaitForRepeat
+            script:
+                var button = $dialogs.buttonsHit.button;
+                var query = $request.query || "";
+                
+                // Проверяем ответ "Нет"
+                if (button == "Нет, нужен телефон" || query.indexOf("нет") != -1) {
+                    $dialogs.answer = "Номер поддержки 8 (495) 981-0-981 работает 24/7.\nЗвонок платный, стоимость зависит от тарифов вашего оператора связи.";
+                    $dialogs.transition = "CloseDialog";
+                }
+                // Проверяем ответ "Да"
+                else if (button == "Да, переведите" || query.indexOf("да") != -1) {
+                    $dialogs.answer = "Соединяю с оператором. Пожалуйста, подождите.";
+                    $dialogs.transition = "TransferToOperator";
+                }
+                // Если ничего не подошло
+                else {
+                    $dialogs.answer = "Пожалуйста, ответьте 'Да' или 'Нет'.";
+                    $dialogs.transition = "WaitForRepeat";
+                }
+            a: {{$dialogs.answer}}
+            go: /{{$dialogs.transition}}
 
     # ---------------------- СЦЕНАРИЙ №2: СПОСОБЫ ОПЛАТЫ ----------------------
     state: PaymentMethods
@@ -63,27 +69,32 @@ theme: /
         go: ProcessPaymentChoice
 
         state: ProcessPaymentChoice
-            if: {{$dialog.buttonsHit.button}} == "Как пополнить в приложении?" || {{$request.query}} contains "приложен" || {{$request.query}} contains "пополнить"
-                a: Для пополнения продукта перейдите в него и выберите «Пополнить».
-                a: 💰 ознакомиться с комиссией можно при оплате.
-                go: CloseDialog
-            
-            elif: {{$dialog.buttonsHit.button}} == "Где внести наличные?" || {{$request.query}} contains "наличн" || {{$request.query}} contains "внести"
-                a: Внести наличные можно:
-                a: - в офисе нашего банка (банкомат/терминал/касса);
-                a: - в банкоматах: «ВТБ», «Альфа-Банка», «Райффайзенбанк».
-                a: Комиссии нет, а внести можно от 500 тыс. до 1.5 млн.
-                a: Подобрать удобный адрес и ознакомиться с режимом работы можно в разделе «Отделения и банкоматы» (https://rencredit.ru/addresses/).
-                a: 🏛 Подробная информация о всех способах оплаты доступна на нашем сайте в разделе «Платежи и переводы» (https://rencredit.ru/payment/).
-                go: CloseDialog
-            
-            elif: {{$dialog.buttonsHit.button}} == "Сложности с оплатой" || {{$request.query}} contains "сложн" || {{$request.query}} contains "проблем"
-                a: Вас понял, уже перевожу.
-                go: TransferToOperator
-            
-            else:
-                a: Пожалуйста, выберите один из вариантов на кнопках.
-                go: PaymentMethods
+            script:
+                var button = $dialogs.buttonsHit.button;
+                var query = $request.query || "";
+                
+                // Пополнение через приложение
+                if (button == "Как пополнить в приложении?" || query.indexOf("приложен") != -1 || query.indexOf("пополнить") != -1) {
+                    $dialogs.answer = "Для пополнения продукта перейдите в него и выберите «Пополнить».\n💰 ознакомиться с комиссией можно при оплате.";
+                    $dialogs.transition = "CloseDialog";
+                }
+                // Внесение наличных
+                else if (button == "Где внести наличные?" || query.indexOf("наличн") != -1 || query.indexOf("внести") != -1) {
+                    $dialogs.answer = "Внести наличные можно:\n- в офисе нашего банка (банкомат/терминал/касса);\n- в банкоматах: «ВТБ», «Альфа-Банка», «Райффайзенбанк».\n\nКомиссии нет, а внести можно от 500 тыс. до 1.5 млн.\n\nПодобрать удобный адрес и ознакомиться с режимом работы можно в разделе «Отделения и банкоматы» (https://rencredit.ru/addresses/).\n\n🏛 Подробная информация о всех способах оплаты доступна на нашем сайте в разделе «Платежи и переводы» (https://rencredit.ru/payment/).";
+                    $dialogs.transition = "CloseDialog";
+                }
+                // Сложности с оплатой
+                else if (button == "Сложности с оплатой" || query.indexOf("сложн") != -1 || query.indexOf("проблем") != -1) {
+                    $dialogs.answer = "Вас понял, уже перевожу.";
+                    $dialogs.transition = "TransferToOperator";
+                }
+                // Если ничего не подошло
+                else {
+                    $dialogs.answer = "Пожалуйста, выберите один из вариантов на кнопках.";
+                    $dialogs.transition = "PaymentMethods";
+                }
+            a: {{$dialogs.answer}}
+            go: /{{$dialogs.transition}}
 
     # ---------------------- ЗАВЕРШЕНИЕ ДИАЛОГА ----------------------
     state: CloseDialog
@@ -94,25 +105,32 @@ theme: /
             "Показать список моих возможностей"
 
         state: FinalChoice
-            if: {{$dialog.buttonsHit.button}} == "Да, спасибо, все хорошо" || {{$request.query}} contains "да" || {{$request.query}} contains "спасибо"
-                a: Рад был помочь! Всегда обращайтесь. Хорошего дня!
-                go: Exit
-            
-            elif: {{$dialog.buttonsHit.button}} == "Показать список моих возможностей" || {{$request.query}} contains "возможн" || {{$request.query}} contains "умеешь"
-                a: Вот что я умею:
-                a: - Спросить номер горячей линии
-                a: - Рассказать, как оплатить кредит или внести наличные
-                a: - Подсказать адрес отделения
-                a: Просто напишите мне ваш вопрос!
-                go: /
-            
-            elif: {{$dialog.buttonsHit.button}} == "Нет, остался вопрос" || {{$request.query}} contains "нет" || {{$request.query}} contains "осталс"
-                a: Давайте попробуем еще раз. Задайте ваш вопрос, и я постараюсь помочь.
-                go: /
-            
-            else:
-                a: Давайте попробуем еще раз. Задайте ваш вопрос, и я постараюсь помочь.
-                go: /
+            script:
+                var button = $dialogs.buttonsHit.button;
+                var query = $request.query || "";
+                
+                // Пользователь закончил диалог
+                if (button == "Да, спасибо, все хорошо" || query.indexOf("да") != -1 || query.indexOf("спасибо") != -1) {
+                    $dialogs.answer = "Рад был помочь! Всегда обращайтесь. Хорошего дня!";
+                    $dialogs.transition = "Exit";
+                }
+                // Показать возможности
+                else if (button == "Показать список моих возможностей" || query.indexOf("возможн") != -1 || query.indexOf("умеешь") != -1) {
+                    $dialogs.answer = "Вот что я умею:\n- Спросить номер горячей линии\n- Рассказать, как оплатить кредит или внести наличные\n- Подсказать адрес отделения\n\nПросто напишите мне ваш вопрос!";
+                    $dialogs.transition = "/";
+                }
+                // Остался вопрос
+                else if (button == "Нет, остался вопрос" || query.indexOf("нет") != -1 || query.indexOf("осталс") != -1) {
+                    $dialogs.answer = "Давайте попробуем еще раз. Задайте ваш вопрос, и я постараюсь помочь.";
+                    $dialogs.transition = "/";
+                }
+                // По умолчанию
+                else {
+                    $dialogs.answer = "Давайте попробуем еще раз. Задайте ваш вопрос, и я постараюсь помочь.";
+                    $dialogs.transition = "/";
+                }
+            a: {{$dialogs.answer}}
+            go: {{$dialogs.transition}}
 
     # ---------------------- ПЕРЕВОД НА ОПЕРАТОРА ----------------------
     state: TransferToOperator

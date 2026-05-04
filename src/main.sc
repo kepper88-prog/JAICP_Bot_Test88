@@ -1,53 +1,51 @@
 theme: /
 
-    # ---------------------- ГОРЯЧАЯ ЛИНИЯ ----------------------
-    state: HotlineRequest
+    # ---------------------- ПЕРВЫЙ ЗАПРОС ТЕЛЕФОНА ----------------------
+    state: PhoneFirst
         q: * номер телефона *
         q: * телефон *
         q: * горячая линия *
         q: * номер поддержки *
         q: * как связаться *
         q: * позвонить *
+        q: * нужен номер *
         
-        script:
-            // Проверяем, первый ли это запрос или повторный
-            var firstRequest = $session.firstRequest;
-            
-            if (!firstRequest) {
-                // Первый запрос - предлагаем помощь в чате
-                $session.firstRequest = true;
-                $reactions.answer("Конечно, телефон службы поддержки есть.\nНо, возможно, я смогу помочь вам быстрее, так как многие вопросы можно решить прямо в чате. Что именно вас интересует?");
-                $reactions.transition("/");
-            } else {
-                // Повторный запрос - спрашиваем про оператора
-                $reactions.answer("Я могу перевести вас на оператора для решения вопроса в чате, устроит?");
-                $reactions.transition("HotlineAnswer");
-                // Сбрасываем флаг после второго вопроса
-                $session.firstRequest = false;
-            }
+        a: Конечно, телефон службы поддержки есть.
+        a: Но, возможно, я смогу помочь вам быстрее, так как многие вопросы можно решить прямо в чате. Что именно вас интересует?
+        go: PhoneSecond
 
-    # ---------------------- ОБРАБОТКА ОТВЕТА ПРО ОПЕРАТОРА ----------------------
-    state: HotlineAnswer
+    # ---------------------- ВТОРОЙ ЗАПРОС ТЕЛЕФОНА ----------------------
+    state: PhoneSecond
+        q: * номер телефона *
+        q: * телефон *
+        q: * номер *
+        q: * нужен номер *
+        
+        a: Я могу перевести вас на оператора для решения вопроса в чате, устроит?
+        buttons:
+            "Да, переведите"
+            "Нет, нужен телефон"
+        go: PhoneAnswer
+
+    # ---------------------- ОТВЕТ НА ВОПРОС ПРО ОПЕРАТОРА ----------------------
+    state: PhoneAnswer
         script:
             var button = $message.buttonsHit;
-            var query = $message.text || "";
+            var text = $message.text || "";
             
-            if (button == "Нет, нужен телефон" || query.indexOf("нет") != -1) {
+            if (button == "Нет, нужен телефон" || text.indexOf("нет") != -1) {
                 $reactions.answer("Номер поддержки 8 (495) 981-0-981 работает 24/7.\nЗвонок платный, стоимость зависит от тарифов вашего оператора связи.");
                 $reactions.transition("CloseDialog");
-            } else if (button == "Да, переведите" || query.indexOf("да") != -1) {
+            } else if (button == "Да, переведите" || text.indexOf("да") != -1) {
                 $reactions.answer("Соединяю с оператором. Пожалуйста, подождите.");
                 $reactions.transition("TransferToOperator");
             } else {
                 $reactions.answer("Пожалуйста, ответьте 'Да' или 'Нет'.");
-                $reactions.transition("HotlineAnswer");
+                $reactions.transition("PhoneSecond");
             }
-        buttons:
-            "Да, переведите"
-            "Нет, нужен телефон"
 
     # ---------------------- СПОСОБЫ ОПЛАТЫ ----------------------
-    state: PaymentMethods
+    state: PaymentFirst
         q: * как оплатить *
         q: * оплатить кредит *
         q: * где внести наличные *
@@ -65,20 +63,20 @@ theme: /
     state: PaymentAnswer
         script:
             var button = $message.buttonsHit;
-            var query = $message.text || "";
+            var text = $message.text || "";
             
-            if (button == "Как пополнить в приложении?" || query.indexOf("приложен") != -1) {
+            if (button == "Как пополнить в приложении?" || text.indexOf("приложен") != -1 || text.indexOf("пополнить") != -1) {
                 $reactions.answer("Для пополнения продукта перейдите в него и выберите «Пополнить».\n💰 ознакомиться с комиссией можно при оплате.");
                 $reactions.transition("CloseDialog");
-            } else if (button == "Где внести наличные?" || query.indexOf("наличн") != -1) {
+            } else if (button == "Где внести наличные?" || text.indexOf("наличн") != -1 || text.indexOf("внести") != -1) {
                 $reactions.answer("Внести наличные можно:\n- в офисе нашего банка (банкомат/терминал/касса);\n- в банкоматах: «ВТБ», «Альфа-Банка», «Райффайзенбанк».\n\nКомиссии нет, а внести можно от 500 тыс. до 1.5 млн.\n\nПодобрать удобный адрес и ознакомиться с режимом работы можно в разделе «Отделения и банкоматы» (https://rencredit.ru/addresses/).\n\n🏛 Подробная информация о всех способах оплаты доступна на нашем сайте в разделе «Платежи и переводы» (https://rencredit.ru/payment/).");
                 $reactions.transition("CloseDialog");
-            } else if (button == "Сложности с оплатой" || query.indexOf("сложн") != -1) {
+            } else if (button == "Сложности с оплатой" || text.indexOf("сложн") != -1 || text.indexOf("проблем") != -1) {
                 $reactions.answer("Вас понял, уже перевожу.");
                 $reactions.transition("TransferToOperator");
             } else {
                 $reactions.answer("Пожалуйста, выберите вариант на кнопках.");
-                $reactions.transition("PaymentMethods");
+                $reactions.transition("PaymentFirst");
             }
 
     # ---------------------- ЗАВЕРШЕНИЕ ДИАЛОГА ----------------------
@@ -93,28 +91,27 @@ theme: /
     state: CloseAnswer
         script:
             var button = $message.buttonsHit;
-            var query = $message.text || "";
+            var text = $message.text || "";
             
-            if (button == "Да, спасибо, все хорошо" || query.indexOf("спасибо") != -1) {
+            if (button == "Да, спасибо, все хорошо" || text.indexOf("спасибо") != -1 || text.indexOf("хорошо") != -1) {
                 $reactions.answer("Рад был помочь! Всегда обращайтесь. Хорошего дня!");
                 $reactions.transition("Exit");
-            } else if (button == "Показать список моих возможностей" || query.indexOf("возможн") != -1) {
+            } else if (button == "Показать список моих возможностей" || text.indexOf("возможн") != -1 || text.indexOf("умеешь") != -1) {
                 $reactions.answer("Вот что я умею:\n- Спросить номер горячей линии\n- Рассказать, как оплатить кредит или внести наличные\n- Подсказать адрес отделения\n\nПросто напишите мне ваш вопрос!");
                 $reactions.transition("/");
-                // Сбрасываем флаг первого запроса телефона
-                $session.firstRequest = false;
             } else {
                 $reactions.answer("Давайте попробуем еще раз. Задайте ваш вопрос, и я постараюсь помочь.");
                 $reactions.transition("/");
-                // Сбрасываем флаг первого запроса телефона
-                $session.firstRequest = false;
             }
 
     # ---------------------- ОБРАБОТЧИК ОШИБОК ----------------------
     state: Fallback
         event!: noMatch
         a: Извините, я вас не совсем понял.
-        a: Я могу:\n- сказать номер телефона банка\n- рассказать как оплатить кредит\n- подсказать где внести наличные
+        a: Я могу:
+        a: 📞 - сказать номер телефона банка
+        a: 💳 - рассказать как оплатить кредит
+        a: 🏦 - подсказать где внести наличные
         a: Напишите, пожалуйста, что вас интересует.
         go: /
 

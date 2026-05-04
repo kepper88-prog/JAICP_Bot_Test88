@@ -23,6 +23,32 @@
     }
   },
   "intents" : [ {
+    "path" : "/Hotline",
+    "enabled" : true,
+    "shared" : false,
+    "phrases" : [ {
+      "text" : "    телефон горячей линии"
+    }, {
+      "text" : "    номер горячей линии"
+    }, {
+      "text" : "    как связаться с банком"
+    }, {
+      "text" : "    горячая линия"
+    }, {
+      "text" : "    номер поддержки"
+    }, {
+      "text" : "    позвонить в банк"
+    }, {
+      "text" : "    дайте телефон банка"
+    }, {
+      "text" : "    куда звонить"
+    } ],
+    "classificationRules" : {
+      "refs" : [ ]
+    },
+    "patterns" : [ ],
+    "priority" : 0
+  }, {
     "path" : "/пока",
     "enabled" : true,
     "shared" : false,
